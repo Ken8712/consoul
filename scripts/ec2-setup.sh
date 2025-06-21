@@ -58,25 +58,48 @@ fi
 
 log_info "Step 3: MariaDB installation"
 sudo yum install -y mariadb-server mariadb-devel
+
+# IMPORTANT: Configure MariaDB BEFORE starting
+log_info "Configuring MariaDB for t2.micro..."
+
+# Create minimal configuration for t2.micro
+sudo tee /etc/my.cnf.d/consoul.cnf > /dev/null <<'EOF'
+[mysqld]
+# t2.micro minimal configuration
+innodb_buffer_pool_size = 64M
+innodb_log_file_size = 16M
+innodb_log_buffer_size = 4M
+max_connections = 20
+table_open_cache = 64
+key_buffer_size = 8M
+query_cache_type = 0
+tmp_table_size = 16M
+max_heap_table_size = 16M
+performance_schema = OFF
+skip-name-resolve
+EOF
+
+# Initialize database if needed
+if [ ! -d "/var/lib/mysql/mysql" ]; then
+    log_info "Initializing MariaDB database..."
+    sudo mysql_install_db --user=mysql
+fi
+
+# Set proper permissions
+sudo chown -R mysql:mysql /var/lib/mysql
+
+# Now start MariaDB with the correct configuration
+log_info "Starting MariaDB..."
 sudo systemctl start mariadb
 sudo systemctl enable mariadb
 
-# MariaDB configuration for t2.micro
-sudo tee /etc/my.cnf.d/consoul.cnf > /dev/null <<'EOF'
-[mysqld]
-# t2.micro optimization
-innodb_buffer_pool_size = 128M
-innodb_log_file_size = 32M
-innodb_log_buffer_size = 8M
-max_connections = 50
-table_open_cache = 256
-query_cache_type = 1
-query_cache_size = 32M
-tmp_table_size = 32M
-max_heap_table_size = 32M
-EOF
-
-sudo systemctl restart mariadb
+# Secure MariaDB installation
+log_info "Securing MariaDB..."
+sudo mysql -e "DELETE FROM mysql.user WHERE User='';"
+sudo mysql -e "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');"
+sudo mysql -e "DROP DATABASE IF EXISTS test;"
+sudo mysql -e "DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';"
+sudo mysql -e "FLUSH PRIVILEGES;"
 
 log_info "Step 4: Redis 6 installation"
 sudo amazon-linux-extras install -y redis6
