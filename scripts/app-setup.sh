@@ -49,7 +49,7 @@ eval "$(rbenv init -)"
 
 bundle config set --local deployment 'true'
 bundle config set --local without 'development test'
-bundle config set force_ruby_platform true
+bundle config set --local force_ruby_platform true
 bundle install
 
 log_info "Step 2: Setting up database"
