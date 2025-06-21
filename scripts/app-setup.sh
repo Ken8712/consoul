@@ -32,12 +32,34 @@ fi
 
 # Create .env file if it doesn't exist
 if [ ! -f ".env" ]; then
-    log_info "Creating .env file from .env.example..."
+    log_info "Creating .env file..."
     if [ -f ".env.example" ]; then
+        log_info "Using .env.example as template"
         cp .env.example .env
     else
-        log_error ".env.example not found"
-        exit 1
+        log_warn ".env.example not found, creating basic .env file"
+        cat > .env <<'EOF'
+# Consoul Application Environment Variables
+RAILS_ENV=production
+SECRET_KEY_BASE=your-secret-key-base-here
+RAILS_MAX_THREADS=5
+RAILS_LOG_LEVEL=info
+
+# Database Configuration
+DATABASE_HOST=localhost
+DATABASE_PORT=3306
+DATABASE_NAME=consoul_production
+DATABASE_USERNAME=consoul
+CONSOUL_DATABASE_PASSWORD=your-database-password-here
+DATABASE_SOCKET=/var/lib/mysql/mysql.sock
+
+# Redis Configuration
+REDIS_URL=redis://localhost:6379/0
+
+# Security Configuration
+FORCE_SSL=true
+EOF
+        log_info "✅ Basic .env file created"
     fi
 fi
 

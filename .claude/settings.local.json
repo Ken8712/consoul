@@ -7,7 +7,11 @@
       "Bash(dig:*)",
       "Bash(ssh:*)",
       "Bash(curl:*)",
-      "Bash(touch:*)"
+      "Bash(touch:*)",
+      "Bash(ruby --version)",
+      "Bash(bundle --version)",
+      "Bash(gem --version)",
+      "Bash(bundle check:*)"
     ],
     "deny": []
   }
