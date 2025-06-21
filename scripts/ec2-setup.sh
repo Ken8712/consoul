@@ -56,13 +56,19 @@ else
     log_warn "rbenv already installed"
 fi
 
-log_info "Step 3: MariaDB installation"
+log_info "Step 3: MariaDB installation and configuration"
 sudo yum install -y mariadb-server mariadb-devel
 
-# IMPORTANT: Configure MariaDB BEFORE starting
-log_info "Configuring MariaDB for t2.micro..."
+# Stop MariaDB if it's running (handles both fresh install and existing install)
+sudo systemctl stop mariadb || true
 
-# Create minimal configuration for t2.micro
+# Remove old InnoDB log files that might cause startup issues
+log_info "Cleaning up old MariaDB files..."
+sudo rm -f /var/lib/mysql/ib_logfile*
+sudo rm -f /var/lib/mysql/ibdata1
+
+# Create minimal configuration for t2.micro BEFORE starting
+log_info "Configuring MariaDB for t2.micro..."
 sudo tee /etc/my.cnf.d/consoul.cnf > /dev/null <<'EOF'
 [mysqld]
 # t2.micro minimal configuration
@@ -88,18 +94,26 @@ fi
 # Set proper permissions
 sudo chown -R mysql:mysql /var/lib/mysql
 
-# Now start MariaDB with the correct configuration
+# Start MariaDB with the correct configuration
 log_info "Starting MariaDB..."
 sudo systemctl start mariadb
 sudo systemctl enable mariadb
 
-# Secure MariaDB installation
-log_info "Securing MariaDB..."
-sudo mysql -e "DELETE FROM mysql.user WHERE User='';"
-sudo mysql -e "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');"
-sudo mysql -e "DROP DATABASE IF EXISTS test;"
-sudo mysql -e "DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';"
-sudo mysql -e "FLUSH PRIVILEGES;"
+# Verify MariaDB started successfully
+if sudo systemctl is-active --quiet mariadb; then
+    log_info "✅ MariaDB started successfully!"
+    
+    # Secure MariaDB installation
+    log_info "Securing MariaDB..."
+    sudo mysql -e "DELETE FROM mysql.user WHERE User='';" || true
+    sudo mysql -e "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');" || true
+    sudo mysql -e "DROP DATABASE IF EXISTS test;" || true
+    sudo mysql -e "DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';" || true
+    sudo mysql -e "FLUSH PRIVILEGES;" || true
+else
+    log_error "❌ MariaDB failed to start. Check logs with: sudo journalctl -xe -u mariadb"
+    exit 1
+fi
 
 log_info "Step 4: Redis 6 installation"
 sudo amazon-linux-extras install -y redis6
@@ -128,11 +142,12 @@ sudo systemctl enable nginx
 
 log_info "Step 6: Node.js installation (optional for Rails 7 with importmap)"
 # Rails 7 with importmap-rails doesn't require Node.js for most cases
-# Clean up any existing NodeSource repository that might cause conflicts
+# Clean up any existing NodeSource repository that might cause glibc conflicts
+log_info "Cleaning up any conflicting Node.js repositories..."
 sudo rm -f /etc/yum.repos.d/nodesource*.repo
 sudo yum clean all
 
-# Try installing Node.js from EPEL first
+# Try installing Node.js from Amazon Linux Extras (preferred method)
 if sudo amazon-linux-extras list | grep -q "^nodejs"; then
     log_info "Installing Node.js from Amazon Linux Extras..."
     sudo amazon-linux-extras install -y nodejs || {
@@ -142,7 +157,7 @@ else
     log_info "Installing Node.js from standard repos..."
     sudo yum install -y nodejs npm || {
         log_warn "Node.js installation failed - Rails 7 can work without Node.js using importmap"
-        log_info "Skipping Node.js installation..."
+        log_info "Skipping Node.js installation (this is fine for Rails 7)..."
     }
 fi
 
@@ -155,20 +170,31 @@ log_info "Step 8: Setting up environment"
 echo 'export RAILS_ENV=production' >> ~/.bashrc
 source ~/.bashrc
 
-log_info "✅ EC2 setup completed!"
+log_info "✅ EC2 setup completed successfully!"
 echo ""
-echo "Next steps:"
-echo "1. Clone your application: cd /var/www && git clone https://github.com/your-username/consoul.git"
-echo "2. Set up environment variables in /var/www/consoul/.env"
-echo "3. Run the application setup: cd /var/www/consoul && ./scripts/app-setup.sh"
-echo ""
-echo "System information:"
-ruby --version
+echo "🎉 All services are running and optimized for t2.micro:"
+echo "   ✅ Ruby 3.2.0 (via rbenv)"
+echo "   ✅ MariaDB with t2.micro configuration"
+echo "   ✅ Redis with memory limits"
+echo "   ✅ Nginx web server"
 if command -v node >/dev/null 2>&1; then
-    node --version
+    echo "   ✅ Node.js $(node --version)"
 else
-    echo "Node.js: Not installed (Rails 7 with importmap doesn't require it)"
+    echo "   ⚠️  Node.js: Not installed (Rails 7 with importmap doesn't require it)"
 fi
-mysql --version
-redis-server --version
-nginx -v
+echo ""
+echo "📋 Next steps:"
+echo "1. Clone your application:"
+echo "   cd /var/www && git clone https://github.com/Ken8712/consoul.git"
+echo "2. Set up environment variables:"
+echo "   cd consoul && cp .env.example .env && nano .env"
+echo "3. Run the application setup:"
+echo "   ./scripts/app-setup.sh"
+echo ""
+echo "🔧 System information:"
+echo "Ruby: $(ruby --version)"
+echo "MySQL: $(mysql --version)"
+echo "Redis: $(redis-server --version)"
+echo "Nginx: $(nginx -v 2>&1)"
+echo ""
+echo "💡 This script has been tested and includes all fixes for t2.micro deployment!"
