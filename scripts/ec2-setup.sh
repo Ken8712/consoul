@@ -126,9 +126,13 @@ sudo amazon-linux-extras install -y nginx1
 sudo systemctl start nginx
 sudo systemctl enable nginx
 
-log_info "Step 6: Node.js installation (for Rails assets)"
-curl -sL https://rpm.nodesource.com/setup_18.x | sudo bash -
-sudo yum install -y nodejs
+log_info "Step 6: Node.js installation (optional for Rails 7 with importmap)"
+# Rails 7 with importmap-rails doesn't require Node.js for most cases
+# Installing Node.js 16 from Amazon Linux 2 repos (compatible with glibc 2.26)
+sudo yum install -y nodejs npm || {
+    log_warn "Node.js installation failed - Rails 7 can work without Node.js using importmap"
+    log_info "Skipping Node.js installation..."
+}
 
 log_info "Step 7: Creating application directory"
 sudo mkdir -p /var/www
@@ -148,7 +152,11 @@ echo "3. Run the application setup: cd /var/www/consoul && ./scripts/app-setup.s
 echo ""
 echo "System information:"
 ruby --version
-node --version
+if command -v node >/dev/null 2>&1; then
+    node --version
+else
+    echo "Node.js: Not installed (Rails 7 with importmap doesn't require it)"
+fi
 mysql --version
 redis-server --version
 nginx -v
