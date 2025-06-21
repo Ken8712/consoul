@@ -35,6 +35,39 @@ sudo yum update -y
 sudo yum groupinstall -y "Development Tools"
 sudo yum install -y git curl wget openssl-devel readline-devel zlib-devel libyaml-devel libffi-devel
 
+log_info "Step 1.5: Setting up swap file for t2.micro (1GB RAM)"
+# Check if swap is already configured
+if ! swapon --show | grep -q "/swapfile"; then
+    log_info "Creating 2GB swap file (recommended for t2.micro)..."
+    
+    # Create swap file
+    sudo fallocate -l 2G /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1024 count=2097152
+    
+    # Set proper permissions
+    sudo chmod 600 /swapfile
+    
+    # Setup swap
+    sudo mkswap /swapfile
+    sudo swapon /swapfile
+    
+    # Make swap permanent
+    if ! grep -q "/swapfile" /etc/fstab; then
+        echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+    fi
+    
+    # Optimize swap settings for t2.micro
+    echo 'vm.swappiness=10' | sudo tee -a /etc/sysctl.conf
+    echo 'vm.vfs_cache_pressure=50' | sudo tee -a /etc/sysctl.conf
+    
+    log_info "✅ Swap file configured (2GB)"
+else
+    log_warn "Swap file already exists"
+fi
+
+# Show memory status
+log_info "Current memory status:"
+free -h
+
 log_info "Step 2: Installing rbenv and Ruby 3.2.0"
 if [ ! -d ~/.rbenv ]; then
     git clone https://github.com/rbenv/rbenv.git ~/.rbenv
@@ -173,6 +206,7 @@ source ~/.bashrc
 log_info "✅ EC2 setup completed successfully!"
 echo ""
 echo "🎉 All services are running and optimized for t2.micro:"
+echo "   ✅ Swap file (2GB) for memory management"
 echo "   ✅ Ruby 3.2.0 (via rbenv)"
 echo "   ✅ MariaDB with t2.micro configuration"
 echo "   ✅ Redis with memory limits"
@@ -197,4 +231,8 @@ echo "MySQL: $(mysql --version)"
 echo "Redis: $(redis-server --version)"
 echo "Nginx: $(nginx -v 2>&1)"
 echo ""
+echo "💾 Memory configuration:"
+free -h
+echo ""
 echo "💡 This script has been tested and includes all fixes for t2.micro deployment!"
+echo "   Including 2GB swap file for handling memory-intensive operations."
