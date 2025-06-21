@@ -2,11 +2,11 @@
 
 ## 概要
 
-AWS EC2 (Amazon Linux 2) へのConsoulアプリケーションのデプロイ手順です。
+AWS EC2 (Amazon Linux 2) への Consoul アプリケーションのデプロイ手順です。
 
 ## 前提条件
 
-- AWS EC2インスタンス (t2.micro以上推奨)
+- AWS EC2 インスタンス (t2.micro 以上推奨)
 - Amazon Linux 2 AMI
 - セキュリティグループで以下のポートを開放
   - SSH (22)
@@ -15,23 +15,26 @@ AWS EC2 (Amazon Linux 2) へのConsoulアプリケーションのデプロイ手
 
 ## デプロイ手順
 
-### 1. EC2インスタンスへSSH接続
+### 1. EC2 インスタンスへ SSH 接続
 
 ```bash
 ssh -i your-key.pem ec2-user@your-ec2-ip
 ```
 
-### 2. EC2環境セットアップ
+### 2. EC2 環境セットアップ
 
 ```bash
 # セットアップスクリプトをダウンロードして実行
-curl -sSL https://raw.githubusercontent.com/your-username/consoul/main/scripts/ec2-setup.sh -o ec2-setup.sh
+# curl -sSL https://raw.githubusercontent.com/your-username/consoul/main/scripts/ec2-setup.sh -o ec2-setup.sh
+https://raw.githubusercontent.com/Ken8712/consoul/refs/heads/main/scripts/ec2-setup.sh
+
 chmod +x ec2-setup.sh
 ./ec2-setup.sh
 ```
 
 このスクリプトは以下をインストール・設定します：
-- Ruby 3.2.0 (rbenv経由)
+
+- Ruby 3.2.0 (rbenv 経由)
 - MariaDB
 - Redis 6
 - Nginx
@@ -41,7 +44,7 @@ chmod +x ec2-setup.sh
 
 ```bash
 cd /var/www
-git clone https://github.com/your-username/consoul.git
+git clone https://github.com/Ken8712/consoul.git
 cd consoul
 ```
 
@@ -54,20 +57,21 @@ nano .env  # または vim .env
 
 以下の環境変数を設定してください：
 
-| 環境変数 | 説明 | 例 |
-|---------|------|-----|
-| `RAILS_ENV` | Rails環境 | `production` |
-| `SECRET_KEY_BASE` | Rails秘密鍵 | `rails secret`で生成 |
-| `DATABASE_HOST` | データベースホスト | `localhost` |
-| `DATABASE_PORT` | データベースポート | `3306` |
-| `DATABASE_NAME` | データベース名 | `consoul_production` |
-| `DATABASE_USERNAME` | データベースユーザー | `consoul` |
-| `CONSOUL_DATABASE_PASSWORD` | データベースパスワード | 安全なパスワード |
-| `DATABASE_SOCKET` | MySQLソケットパス | `/var/lib/mysql/mysql.sock` |
-| `REDIS_URL` | Redis接続URL | `redis://localhost:6379/0` |
-| `FORCE_SSL` | SSL強制 | `true` |
+| 環境変数                    | 説明                   | 例                          |
+| --------------------------- | ---------------------- | --------------------------- |
+| `RAILS_ENV`                 | Rails 環境             | `production`                |
+| `SECRET_KEY_BASE`           | Rails 秘密鍵           | `rails secret`で生成        |
+| `DATABASE_HOST`             | データベースホスト     | `localhost`                 |
+| `DATABASE_PORT`             | データベースポート     | `3306`                      |
+| `DATABASE_NAME`             | データベース名         | `consoul_production`        |
+| `DATABASE_USERNAME`         | データベースユーザー   | `consoul`                   |
+| `CONSOUL_DATABASE_PASSWORD` | データベースパスワード | 安全なパスワード            |
+| `DATABASE_SOCKET`           | MySQL ソケットパス     | `/var/lib/mysql/mysql.sock` |
+| `REDIS_URL`                 | Redis 接続 URL         | `redis://localhost:6379/0`  |
+| `FORCE_SSL`                 | SSL 強制               | `true`                      |
 
-SECRET_KEY_BASEの生成：
+SECRET_KEY_BASE の生成：
+
 ```bash
 cd /var/www/consoul
 export PATH="$HOME/.rbenv/bin:$PATH"
@@ -82,13 +86,14 @@ bundle exec rails secret
 ```
 
 このスクリプトは以下を実行します：
-- Ruby依存関係のインストール
+
+- Ruby 依存関係のインストール
 - データベースの作成とマイグレーション
 - アセットのプリコンパイル
-- Unicornサービスの設定
-- Nginxの設定
+- Unicorn サービスの設定
+- Nginx の設定
 
-### 6. SSL証明書の設定（オプション）
+### 6. SSL 証明書の設定（オプション）
 
 ドメインを設定している場合：
 
@@ -140,7 +145,7 @@ sudo systemctl restart consoul
 
 ## トラブルシューティング
 
-### Unicornが起動しない
+### Unicorn が起動しない
 
 ```bash
 # ログを確認
@@ -175,10 +180,10 @@ sudo systemctl restart consoul
 
 ## セキュリティ注意事項
 
-1. `.env`ファイルは絶対にGitにコミットしない
+1. `.env`ファイルは絶対に Git にコミットしない
 2. データベースパスワードは強固なものを使用
-3. SECRET_KEY_BASEは必ず再生成する
-4. 本番環境では必ずSSLを有効化する
+3. SECRET_KEY_BASE は必ず再生成する
+4. 本番環境では必ず SSL を有効化する
 5. 定期的にシステムをアップデートする
 
 ```bash
