@@ -33,11 +33,14 @@ fi
 # Create .env file if it doesn't exist
 if [ ! -f ".env" ]; then
     log_info "Creating .env file..."
-    if [ -f ".env.example" ]; then
+    if [ -f "env.example" ]; then
+        log_info "Using env.example as template"
+        cp env.example .env
+    elif [ -f ".env.example" ]; then
         log_info "Using .env.example as template"
         cp .env.example .env
     else
-        log_warn ".env.example not found, creating basic .env file"
+        log_warn "No env template found, creating basic .env file"
         cat > .env <<'EOF'
 # Consoul Application Environment Variables
 RAILS_ENV=production
