@@ -30,12 +30,15 @@ if [ ! -f "Gemfile" ]; then
     exit 1
 fi
 
-# Check if .env file exists
+# Create .env file if it doesn't exist
 if [ ! -f ".env" ]; then
-    log_error ".env file not found. Please create it from .env.example"
-    log_info "cp .env.example .env"
-    log_info "Then edit .env with your configuration"
-    exit 1
+    log_info "Creating .env file from .env.example..."
+    if [ -f ".env.example" ]; then
+        cp .env.example .env
+    else
+        log_error ".env.example not found"
+        exit 1
+    fi
 fi
 
 # Load environment variables
@@ -51,6 +54,26 @@ bundle config set --local deployment 'true'
 bundle config set --local without 'development test'
 bundle config set --local force_ruby_platform true
 bundle install
+
+log_info "Step 1.5: Generating SECRET_KEY_BASE if needed"
+if grep -q "your-secret-key-base-here" .env; then
+    log_info "Generating new SECRET_KEY_BASE..."
+    SECRET_KEY=$(bundle exec rails secret)
+    sed -i "s/your-secret-key-base-here/$SECRET_KEY/" .env
+    log_info "✅ SECRET_KEY_BASE updated in .env"
+fi
+
+if grep -q "your-database-password-here" .env; then
+    log_info "Generating database password..."
+    DB_PASSWORD=$(openssl rand -base64 32 | tr -d '/+=' | head -c 32)
+    sed -i "s/your-database-password-here/$DB_PASSWORD/" .env
+    log_info "✅ Database password updated in .env"
+fi
+
+# Reload environment variables after updates
+set -a
+source .env
+set +a
 
 log_info "Step 2: Setting up database"
 # Create database and user if needed
