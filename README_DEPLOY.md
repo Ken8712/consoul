@@ -26,7 +26,7 @@ ssh -i your-key.pem ec2-user@your-ec2-ip
 ```bash
 # セットアップスクリプトをダウンロードして実行
 # curl -sSL https://raw.githubusercontent.com/your-username/consoul/main/scripts/ec2-setup.sh -o ec2-setup.sh
-https://raw.githubusercontent.com/Ken8712/consoul/refs/heads/main/scripts/ec2-setup.sh
+curl -sSL https://raw.githubusercontent.com/Ken8712/consoul/refs/heads/main/scripts/ec2-setup.sh -o ec2-setup.sh
 
 chmod +x ec2-setup.sh
 ./ec2-setup.sh

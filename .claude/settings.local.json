@@ -5,7 +5,9 @@
       "Bash(ping:*)",
       "Bash(nslookup:*)",
       "Bash(dig:*)",
-      "Bash(ssh:*)"
+      "Bash(ssh:*)",
+      "Bash(curl:*)",
+      "Bash(touch:*)"
     ],
     "deny": []
   }
