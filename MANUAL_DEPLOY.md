@@ -5,7 +5,7 @@
 ## 前提条件
 
 - AWS EC2 t2.micro インスタンス (Amazon Linux 2)
-- SSH接続可能な環境
+- SSH 接続可能な環境
 - セキュリティグループで以下のポートを開放
   - SSH (22)
   - HTTP (80)
@@ -13,7 +13,7 @@
 
 ## 手動デプロイ手順
 
-### 1. EC2インスタンスへのSSH接続
+### 1. EC2 インスタンスへの SSH 接続
 
 ```bash
 ssh -i ~/.ssh/your-key.pem ec2-user@your-ec2-ip
@@ -52,9 +52,9 @@ echo 'vm.vfs_cache_pressure=50' | sudo tee -a /etc/sysctl.conf
 free -h
 ```
 
-### 3. Ruby環境のセットアップ
+### 3. Ruby 環境のセットアップ
 
-#### 3.1 rbenvのインストール
+#### 3.1 rbenv のインストール
 
 ```bash
 # rbenvとruby-buildのクローン
@@ -70,7 +70,7 @@ export PATH="$HOME/.rbenv/bin:$PATH"
 eval "$(rbenv init -)"
 ```
 
-#### 3.2 Ruby 3.2.0のインストール
+#### 3.2 Ruby 3.2.0 のインストール
 
 ```bash
 # Ruby 3.2.0のインストール（10-15分かかります）
@@ -86,9 +86,9 @@ gem install bundler
 rbenv rehash
 ```
 
-### 4. MariaDBのセットアップ
+### 4. MariaDB のセットアップ
 
-#### 4.1 MariaDBのインストールと設定
+#### 4.1 MariaDB のインストールと設定
 
 ```bash
 # インストール
@@ -134,7 +134,7 @@ sudo mysql -e "DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';"
 sudo mysql -e "FLUSH PRIVILEGES;"
 ```
 
-### 5. Redisのセットアップ
+### 5. Redis のセットアップ
 
 ```bash
 # Redis 6のインストール
@@ -159,7 +159,7 @@ sudo systemctl start redis
 sudo systemctl enable redis
 ```
 
-### 6. Nginxのセットアップ
+### 6. Nginx のセットアップ
 
 ```bash
 # インストール
@@ -211,6 +211,7 @@ bundle config set --local deployment 'true'
 bundle config set --local without 'development test'
 bundle config set --local force_ruby_platform true
 bundle install
+##一回１行目と２行目はやらず、bundle installし、つぎに有効にしてからbundle installして次へ
 
 # SECRET_KEY_BASEの生成
 SECRET_KEY=$(bundle exec rails secret)
@@ -253,16 +254,16 @@ bundle exec rails assets:precompile
 mkdir -p tmp/pids tmp/cache tmp/sockets log
 ```
 
-### 9. Unicornの設定
+### 9. Unicorn の設定
 
-#### 9.1 Unicorn設定ファイルの確認
+#### 9.1 Unicorn 設定ファイルの確認
 
 ```bash
 # config/unicorn.rbが存在することを確認
 cat config/unicorn.rb
 ```
 
-#### 9.2 Unicornサービスの作成
+#### 9.2 Unicorn サービスの作成
 
 ```bash
 sudo tee /etc/systemd/system/consoul.service > /dev/null <<EOF
@@ -293,7 +294,7 @@ sudo systemctl daemon-reload
 sudo systemctl enable consoul
 ```
 
-### 10. Nginxの設定
+### 10. Nginx の設定
 
 ```bash
 sudo tee /etc/nginx/conf.d/consoul.conf > /dev/null <<'EOF'
@@ -351,7 +352,7 @@ curl http://169.254.169.254/latest/meta-data/public-ipv4
 
 ## トラブルシューティング
 
-### Rubyが見つからない場合
+### Ruby が見つからない場合
 
 ```bash
 # 新しいシェルセッションを開始
@@ -362,7 +363,7 @@ export PATH="$HOME/.rbenv/bin:$PATH"
 eval "$(rbenv init -)"
 ```
 
-### bundle installでエラーが出る場合
+### bundle install でエラーが出る場合
 
 ```bash
 # スワップファイルの確認
@@ -370,9 +371,40 @@ free -h
 
 # mysql2 gemのインストールエラーの場合
 sudo yum install -y mariadb-devel
+
+# "Cannot write a changed lockfile while frozen"エラーの場合
+bundle config unset deployment
+bundle config unset frozen
+bundle install
+bundle config set --local deployment 'true'
+bundle config set --local without 'development test'
+bundle install
 ```
 
-### Unicornが起動しない場合
+### データベースマイグレーションでエラーが出る場合
+
+```bash
+# "Table 'users' already exists"エラーの場合
+bundle exec rails db:drop
+bundle exec rails db:create
+bundle exec rails db:migrate
+
+# MariaDB 5.5 utf8mb4インデックス制限エラーの場合
+# マイグレーションファイルのstring型にlimit: 191を追加する必要があります
+mysql -u $DATABASE_USERNAME -p$CONSOUL_DATABASE_PASSWORD $DATABASE_NAME -e "DROP TABLE IF EXISTS users;"
+bundle exec rails db:migrate
+```
+
+### MariaDB 5.5 の utf8mb4 制限について
+
+MariaDB 5.5では、utf8mb4使用時にインデックス付きカラムが767バイト（191文字）に制限されます。
+以下のカラムには `limit: 191` が必要です：
+
+- email（ユニークインデックス付き）
+- reset_password_token（ユニークインデックス付き）
+- その他のユニークインデックス付きstring型カラム
+
+### Unicorn が起動しない場合
 
 ```bash
 # エラーログ確認
@@ -439,12 +471,12 @@ sudo journalctl -u consoul -f
 
 ## セキュリティ注意事項
 
-1. **環境変数**: `.env`ファイルは絶対にGitにコミットしない
+1. **環境変数**: `.env`ファイルは絶対に Git にコミットしない
 2. **SECRET_KEY_BASE**: 必ず新しく生成する
 3. **データベースパスワード**: 強固なパスワードを使用
-4. **SSL証明書**: 本番環境では必ずHTTPSを使用
+4. **SSL 証明書**: 本番環境では必ず HTTPS を使用
 5. **定期的なアップデート**: `sudo yum update -y`を定期実行
 
 ---
 
-このガイドに従えば、EC2 t2.microインスタンスにConsoulアプリケーションを手動でデプロイできます。
+このガイドに従えば、EC2 t2.micro インスタンスに Consoul アプリケーションを手動でデプロイできます。

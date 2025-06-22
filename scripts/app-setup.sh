@@ -108,8 +108,32 @@ GRANT ALL PRIVILEGES ON $DATABASE_NAME.* TO '$DATABASE_USERNAME'@'$DATABASE_HOST
 FLUSH PRIVILEGES;
 "
 
+# Check for existing tables that might conflict
+EXISTING_TABLES=$(mysql -u $DATABASE_USERNAME -p$CONSOUL_DATABASE_PASSWORD $DATABASE_NAME -e "SHOW TABLES;" 2>/dev/null | grep -v "Tables_in_" | wc -l)
+
+if [ "$EXISTING_TABLES" -gt 0 ]; then
+    log_warn "Database already contains $EXISTING_TABLES tables"
+    echo "This might be from a previous incomplete deployment."
+    echo "Options:"
+    echo "1. Reset database (DESTRUCTIVE - removes all data)"
+    echo "2. Continue and try to migrate"
+    echo ""
+    read -p "Reset database? (y/N): " -r
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        log_info "Resetting database..."
+        bundle exec rails db:drop
+        bundle exec rails db:create
+    else
+        log_info "Continuing with existing database..."
+    fi
+fi
+
 log_info "Step 3: Running database migrations"
-bundle exec rails db:migrate
+bundle exec rails db:migrate || {
+    log_error "Migration failed. This might be due to MariaDB 5.5 utf8mb4 index limitations."
+    log_info "Try resetting the database with: bundle exec rails db:drop && bundle exec rails db:create && bundle exec rails db:migrate"
+    exit 1
+}
 
 log_info "Step 4: Precompiling assets"
 bundle exec rails assets:precompile
