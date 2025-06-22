@@ -10,8 +10,8 @@ timeout 60
 APP_ROOT = File.expand_path('..', __dir__)
 working_directory APP_ROOT
 
-# Socket for Nginx communication
-listen "/tmp/unicorn.sock", backlog: 64
+# TCP port for Nginx communication (more reliable than Unix socket)
+listen "127.0.0.1:8080", backlog: 64
 
 # Process IDs
 pid "/tmp/unicorn.pid"

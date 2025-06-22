@@ -299,7 +299,7 @@ sudo systemctl enable consoul
 ```bash
 sudo tee /etc/nginx/conf.d/consoul.conf > /dev/null <<'EOF'
 upstream consoul {
-    server unix:/tmp/unicorn.sock fail_timeout=0;
+    server 127.0.0.1:8080 fail_timeout=0;
 }
 
 server {
@@ -424,6 +424,25 @@ sudo systemctl status mariadb
 
 # 接続テスト
 mysql -u $DATABASE_USERNAME -p$CONSOUL_DATABASE_PASSWORD $DATABASE_NAME -e "SELECT 1;"
+```
+
+### 403 Forbidden エラーの解決
+
+```bash
+# Rails設定が原因の場合、以下を確認：
+
+# 1. FORCE_SSL設定を確認
+grep FORCE_SSL .env
+
+# 2. 必要に応じてHTTPアクセスを許可
+sed -i 's/FORCE_SSL=true/FORCE_SSL=false/' .env
+
+# 3. Unicorn再起動
+sudo systemctl restart consoul
+
+# 4. 動作確認
+curl -I http://localhost/up  # ヘルスチェックエンドポイント
+curl -I http://localhost/    # メインページ
 ```
 
 ## メンテナンスコマンド

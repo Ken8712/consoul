@@ -168,7 +168,7 @@ sudo systemctl enable consoul
 log_info "Step 7: Setting up Nginx"
 sudo tee /etc/nginx/conf.d/consoul.conf > /dev/null <<EOF
 upstream consoul {
-    server unix:/tmp/unicorn.sock fail_timeout=0;
+    server 127.0.0.1:8080 fail_timeout=0;
 }
 
 server {
