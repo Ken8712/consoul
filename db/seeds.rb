@@ -3,7 +3,7 @@
 # The data can then be loaded with the bin/rails db:seed command (or created alongside the database with db:setup).
 
 # 開発・テスト用のユーザーペア作成
-if Rails.env.development? || Rails.env.test?
+if Rails.env.development? || Rails.env.test? || Rails.env.production?
   # m@m.com ユーザー
   user_m = User.find_or_create_by!(email: 'm@m.com') do |user|
     user.name = 'M'
