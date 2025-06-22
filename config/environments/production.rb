@@ -97,7 +97,7 @@ Rails.application.configure do
 
   # Enable DNS rebinding protection and other `Host` header attacks.
   config.hosts = [
-    "main.infra1205.xyz",     # Allow requests from main domain
+    "main-infra1205.xyz",     # Allow requests from main domain
     "13.113.184.147",         # Allow requests from IP address
     "localhost",              # Allow localhost requests
     "127.0.0.1",              # Allow localhost IP requests
