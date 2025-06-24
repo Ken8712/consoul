@@ -81,7 +81,7 @@
                 <% end %>
               </span>
               <%= link_to "ログアウト", destroy_user_session_path, 
-                          method: :delete, 
+                          data: {turbo_method: :delete},
                           class: "text-sm text-gray-600 hover:text-gray-900" %>
             </div>
           <% end %>

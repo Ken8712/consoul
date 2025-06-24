@@ -135,6 +135,10 @@ class RoomsController < ApplicationController
       heart_count: @room.heart_count,
       last_activity_at: @room.last_activity_at&.strftime("%H:%M:%S"),
       started_at: @room.started_at&.strftime("%H:%M"),
+
+      # ended_atが記録されるタイミングは、room_controllerのcompleteアクションでルームが終了したときです。
+      # コードの行は、以下の通りです。
+      # @room.update!(ended_at: Time.current)
       ended_at: @room.ended_at&.strftime("%Y/%m/%d %H:%M"),
       user1_emotion: @room.user1_emotion,
       user2_emotion: @room.user2_emotion,

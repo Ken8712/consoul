@@ -2,25 +2,33 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   static targets = ["timer", "heartCount", "lastActivity", "status", "currentUserEmotion", "partnerEmotion"]
-  static values = { 
+  static values = {
     roomId: Number,
     pollingInterval: { type: Number, default: 500 }
   }
 
+  // falseにすると、ページがフォアグラウンドに戻ったときにポーリングを再開しない
+  // ページがフォアグラウンドに戻るというのは、つまり、ルームが完了した後に再度ページを開いた場合など
+  // ページがバックグラウンドに行くというのは、例えば、ユーザーが他のタブに移動したり、アプリを最小化したりすること
+  // ページが完了したとき、このコードはルームの完了状態を処理し、ポーリングを停止します
+  // completedHandledを
   completedHandled = false
 
   connect() {
     console.log("Room controller connected for room:", this.roomIdValue)
     this.startPolling()
-    
+
+    // bindした関数をプロパティとして保存
+    this.boundHandleVisibilityChange = this.handleVisibilityChange.bind(this)
     // ページ可視性の変化を監視（バックグラウンド対策）
-    document.addEventListener('visibilitychange', this.handleVisibilityChange.bind(this))
+    document.addEventListener('visibilitychange', this.boundHandleVisibilityChange)
   }
 
   disconnect() {
     this.stopPolling()
     this.stopClientTimer()
-    document.removeEventListener('visibilitychange', this.handleVisibilityChange.bind(this))
+    // 保存しておいた同じ関数を削除する
+    document.removeEventListener('visibilitychange', this.boundHandleVisibilityChange)
   }
 
   // ポーリング開始
@@ -42,6 +50,7 @@ export default class extends Controller {
   async fetchRoomStatus() {
     try {
       const response = await fetch(`/rooms/${this.roomIdValue}/status`, {
+        //ここにCSRFトークンを追加する必要はない理由は、GETメソッドだからです。
         headers: {
           "Accept": "application/json",
           "X-Requested-With": "XMLHttpRequest"
@@ -50,6 +59,7 @@ export default class extends Controller {
 
       if (response.ok) {
         const data = await response.json()
+        // data.roomとするのは、APIのレスポンスが{ room: { ... } }の形式であることを前提としています。
         this.updateUI(data.room)
       }
     } catch (error) {
@@ -75,7 +85,7 @@ export default class extends Controller {
     if (this.hasHeartCountTarget) {
       const currentCount = parseInt(this.heartCountTarget.textContent) || 0
       const newCount = roomData.heart_count
-      
+
       if (newCount > currentCount) {
         this.animateHeartCount(currentCount, newCount)
       } else {
@@ -92,7 +102,7 @@ export default class extends Controller {
     if (this.hasCurrentUserEmotionTarget && roomData.current_user_emotion) {
       this.currentUserEmotionTarget.textContent = roomData.current_user_emotion
     }
-    
+
     if (this.hasPartnerEmotionTarget && roomData.partner_emotion) {
       this.partnerEmotionTarget.textContent = roomData.partner_emotion
     }
@@ -105,10 +115,10 @@ export default class extends Controller {
         this.updateStatusBadge(roomData.status)
       }
     }
-    
+
     // コントロールボタンは常に更新（タイマー状態が変わるため）
     this.updateControlButtons(roomData)
-    
+
     // ルーム完了を検知
     if (roomData.status === 'completed' && !this.completedHandled) {
       this.handleRoomCompleted(roomData)
@@ -118,15 +128,15 @@ export default class extends Controller {
   // クライアント側タイマー開始
   startClientTimer(initialSeconds) {
     this.stopClientTimer() // 既存のタイマーを停止
-    
+
     this.clientStartTime = Date.now()
     this.serverElapsedSeconds = initialSeconds
-    
+
     this.clientTimer = setInterval(() => {
       const clientElapsed = Math.floor((Date.now() - this.clientStartTime) / 1000)
       const totalSeconds = this.serverElapsedSeconds + clientElapsed
       const formatted = this.formatTime(totalSeconds)
-      
+
       if (this.hasTimerTarget) {
         this.timerTarget.textContent = formatted
       }
@@ -152,22 +162,22 @@ export default class extends Controller {
   animateHeartCount(from, to) {
     const duration = 500 // 0.5秒
     const startTime = Date.now()
-    
+
     const animate = () => {
       const elapsed = Date.now() - startTime
       const progress = Math.min(elapsed / duration, 1)
-      
+
       // イージング関数（ease-out）
       const easeOut = 1 - Math.pow(1 - progress, 3)
       const currentValue = Math.round(from + (to - from) * easeOut)
-      
+
       this.heartCountTarget.textContent = currentValue
-      
+
       if (progress < 1) {
         requestAnimationFrame(animate)
       }
     }
-    
+
     requestAnimationFrame(animate)
   }
 
@@ -175,10 +185,10 @@ export default class extends Controller {
   updateStatusBadge(status) {
     const badgeClasses = {
       'waiting': 'bg-yellow-100 text-yellow-800',
-      'active': 'bg-green-100 text-green-800', 
+      'active': 'bg-green-100 text-green-800',
       'completed': 'bg-gray-100 text-gray-800'
     }
-    
+
     this.statusTarget.className = `inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${badgeClasses[status] || 'bg-gray-100 text-gray-800'}`
   }
 
@@ -189,7 +199,7 @@ export default class extends Controller {
 
     // 新しいボタンのHTML生成
     let buttonsHTML = ''
-    
+
     if (roomData.status === 'active') {
       if (roomData.timer_running) {
         buttonsHTML = `<button class="px-6 py-3 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 active:bg-yellow-700 transition-colors touch-manipulation" data-action="click->room#pauseTimer">一時停止</button>`
@@ -202,13 +212,13 @@ export default class extends Controller {
     // タイマーボタンのみを更新（ルーム終了ボタンは維持）
     const existingTimerButton = timerControls.querySelector('[data-action*="pauseTimer"], [data-action*="resumeTimer"]')
     const existingCompleteButton = timerControls.querySelector('[data-action*="completeRoom"]')
-    
+
     if (roomData.status === 'active') {
       // 既存のボタンがない、または異なる場合のみ更新
-      const needsUpdate = !existingTimerButton || 
+      const needsUpdate = !existingTimerButton ||
         (roomData.timer_running && !existingTimerButton.matches('[data-action*="pauseTimer"]')) ||
         (!roomData.timer_running && !existingTimerButton.matches('[data-action*="resumeTimer"]'))
-      
+
       if (needsUpdate) {
         timerControls.innerHTML = buttonsHTML
       }
@@ -224,17 +234,17 @@ export default class extends Controller {
       if (response.success) {
         this.updateUI(response.room)
         this.showNotification("ルームが開始されました")
-        
+
         // ステータス表示を強制的に更新
         if (this.hasStatusTarget) {
           this.statusTarget.textContent = 'active'
           this.updateStatusBadge('active')
         }
-        
+
         // waiting-sectionを非表示にし、active-sectionを表示
         const waitingSection = this.element.querySelector('.waiting-section')
         const activeSection = this.element.querySelector('.active-section')
-        
+
         if (waitingSection) waitingSection.style.display = 'none'
         if (activeSection) activeSection.style.display = 'block'
       } else {
@@ -298,21 +308,21 @@ export default class extends Controller {
     this.completedHandled = true
     this.stopPolling()
     this.stopClientTimer()
-    
+
     // セクションの切り替え
     const waitingSection = this.element.querySelector('.waiting-section')
     const activeSection = this.element.querySelector('.active-section')
     const completedSection = this.element.querySelector('.completed-section')
-    
+
     if (waitingSection) waitingSection.style.display = 'none'
     if (activeSection) activeSection.style.display = 'none'
     if (completedSection) {
       completedSection.style.display = 'block'
-      
+
       // 完了データを更新
       this.updateCompletedSection(roomData)
     }
-    
+
     this.showNotification('ルームが終了しました')
   }
 
@@ -374,7 +384,7 @@ export default class extends Controller {
   // 感情設定
   async setEmotion(event) {
     const emotion = event.target.dataset.emotion
-    
+
     try {
       const response = await fetch(`/rooms/${this.roomIdValue}/set_emotion`, {
         method: "PATCH",
@@ -388,7 +398,7 @@ export default class extends Controller {
       })
 
       const data = await response.json()
-      
+
       if (data.success) {
         this.updateUI(data.room)
         this.showNotification(`感情を ${emotion} に設定しました`)
