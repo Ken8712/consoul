@@ -1,19 +1,19 @@
-<div class="bg-white rounded-lg shadow p-6">
-  <h1 class="text-3xl font-bold text-gray-900 mb-6">ダッシュボード</h1>
+<%# <div class="bg-transparent rounded-lg shadow p-6"> %>
+  <%# <h1 class="text-3xl font-bold text-gray-900 mb-6">ダッシュボード</h1> %>
   
   <div class="mb-6">
-    <p class="text-lg text-gray-700">ようこそ、<%= current_user.name %>さん</p>
+    <!-- <p class="text-lg text-gray-700">ようこそ、<%= current_user.name %>さん</p> -->
 
     <% if current_user.paired? %>
-      <div class="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
-        <p class="text-green-800">
-          <span class="font-semibold">パートナー:</span> <%= current_user.partner.name %>さん ♥
-        </p>
-        <p class="text-sm text-green-600 mt-1">
-          一緒にルームを作成できます
-        </p>
-        
-      </div>
+      <%# <div class="mt-4 p-4 bg-green-50 rounded-lg border border-green-200"> %>
+        <%# <p class="text-green-800"> %>
+          <!-- <span class="font-semibold">パートナー:</span> <%= current_user.partner.name %>さん ♥ -->
+        <%# </p> %>
+        <%# <p class="text-sm text-green-600 mt-1"> %>
+          <%# 一緒にルームを作成できます %>
+        <%# </p> %>
+      <%# </div> %>
+
     <% else %>
       <div class="mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
         <p class="text-yellow-800">
@@ -25,10 +25,29 @@
       </div>
     <% end %>
   </div>
+
+
+
   
   <div class="space-y-4">
     <%= link_to 'ルーム一覧', rooms_path, 
         class: 'inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors' %>
-    <%= link_to "prototypes", "/prototypes/index.html" %>
+    <!-- <%= link_to "prototypes", "/prototypes/index.html" %> -->
   </div>
+  <div class="fixed bottom-5 left-1/2 transform -translate-x-1/2">
+  <svg id="emotionSvg" width="200" height="200" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="auroraGrad" cx="50%" cy="50%" r="60%">
+        <stop offset="0%" stop-color="#FF00FF" stop-opacity="0.8" />
+        <stop offset="70%" stop-color="#FF00FF" stop-opacity="0.3" />
+        <stop offset="100%" stop-color="#FF00FF" stop-opacity="0" />
+      </radialGradient>
+      <filter id="blur">
+        <feGaussianBlur stdDeviation="12" />
+      </filter>
+    </defs>
+    <ellipse id="aurora" cx="150" cy="150" rx="100" ry="95" fill="url(#auroraGrad)" filter="url(#blur)" />
+  </svg>
+  </div>
+  
 </div>

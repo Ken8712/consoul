@@ -3,16 +3,20 @@
   <head>
     <title><%= content_for(:title) || "Consoul" %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
-
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital@1&display=swap" rel="stylesheet">
     <%= yield :head %>
 
     <link rel="manifest" href="/manifest.json">
     <link rel="icon" href="/icon.png" type="image/png">
     <link rel="icon" href="/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/icon.png">
+    
     
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -52,6 +56,25 @@
       /* スクロールの最適化 */
       body {
         -webkit-overflow-scrolling: touch;
+        touch-action: none;
+      }
+
+      .playfair-display-i400 {
+      font-family: "Playfair Display", serif;
+      font-optical-sizing: auto;
+      font-weight: 400;
+      font-style: italic;
+      <%# color: #0facbc; %>
+      color: rgba(15, 172, 188, 0.6);
+      text-shadow:
+    0 0 3px #0facbc,
+    0 0 5px #0facbc,
+    0 0 10px #0facbc,
+    0 0 13px #0facbc;
+      }
+
+      .icon-logout { 
+        height: 5px;
       }
     </style>
     
@@ -59,30 +82,40 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body class="bg-gray-50 text-gray-900">
-    <!-- ナビゲーションバー -->
-    <nav class="bg-white shadow-sm border-b">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16">
+  <body class="bg-black bg-main-iphone">
+
+    <!-- Phirealityヘッダー -->
+
+    <nav class="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/100 to-black/1 backdrop-blur-md z-50">
+      <div class="max-w-7xl mx-2 sm:px-6 lg:px-8">
+        <div class="flex justify-between">
+            <%# ヘッダーロゴ %>
           <div class="flex items-center">
-            <%= link_to root_path, class: "text-xl font-bold text-indigo-600" do %>
-              Consoul
+            <%= link_to root_path, class: "text-xl playfair-display-i400" do %>
+              Φhireality
             <% end %>
           </div>
           
           <% if user_signed_in? %>
-            <div class="flex items-center space-x-4">
-              <span class="text-sm text-gray-600">
-                <%= current_user.name %>さん
+            <div class="playfair-display-i400 flex items-center space-x-1">
+              <span class="playfair-display-i400 text-xs">
+                <!-- <%= current_user.name %>さん -->
+                connected
+                </span>
                 <% if current_user.paired? %>
-                  <span class="text-green-600">♥ <%= current_user.partner.name %></span>
+                  <span class="playfair-display-i400 text-xs">
+                  <!-- <%= current_user.partner.name %> -->
+                  / paired
+                  </span>
                 <% else %>
                   <span class="text-gray-400">(ペアなし)</span>
                 <% end %>
-              </span>
-              <%= link_to "ログアウト", destroy_user_session_path, 
+
+              <%= link_to destroy_user_session_path, 
                           data: {turbo_method: :delete},
-                          class: "text-sm text-gray-600 hover:text-gray-900" %>
+                          class: "text-sm text-gray-600 hover:text-gray-900" do %>
+                | Sign-out
+              <% end %>
             </div>
           <% end %>
         </div>
@@ -103,8 +136,17 @@
     <% end %>
 
     <!-- メインコンテンツ -->
-    <main class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+    <main class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 bg-main-iphone">
       <%= yield %>
     </main>
+
+    <svg display: none;>
+    
+  </svg>
   </body>
+
+
+
+
+
 </html>
