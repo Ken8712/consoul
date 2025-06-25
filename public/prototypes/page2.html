@@ -5,13 +5,108 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ページ2</title>
+  <style>
+    body {
+      /* 標準のタッチ操作（スクロール、ズーム）を無効にする */
+      touch-action: none;
+      /* bgcolor属性の代わりにCSSで背景色を指定 */
+      background-color: #000;
+      /* ページのコンテンツが少ない場合でもスクロールが発生しないようにマージンをリセット */
+      margin: 0;
+      /* テキスト選択を無効にし、意図しないインタラクションを防ぐ */
+      user-select: none;
+    }
+  </style>
 </head>
 
 <body>
 
-  <h1>ページ2</h1>
-  <p>ここはページ2のコンテンツです。</p>
-  <p><a href="index.html">一覧ページに戻る</a></p>
+  <div style="width: 100%; display: flex; justify-content: center; align-items: center; height: 100vh;">
+    <!-- 案1   -->
+    <svg width="30%" height="250" viewBox="0 0 250 250" xmlns="http://www.w3.org/2000/svg" display="inline-block">
+      <defs>
+        <radialGradient id="orbGrad1" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#FFFF00" stop-opacity="0.9" />
+          <stop offset="100%" stop-color="#FFFF00" stop-opacity="0" />
+        </radialGradient>
+      </defs>
+      <circle cx="125" cy="125" r="100" fill="url(#orbGrad1)">
+        <animate attributeName="opacity" values="0.8;1;0.8" dur="3s" repeatCount="indefinite" />
+        <animateTransform attributeName="transform" attributeType="XML" type="translate" values="0,-5;0,5;0,-5" dur="4s"
+          repeatCount="indefinite" />
+      </circle>
+
+      <!-- 光の粒子 -->
+      <circle cx="85" cy="85" r="5" fill="#FFFFFF" opacity="0.8">
+        <animate attributeName="opacity" values="0;0.8;0" dur="2s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="165" cy="135" r="3" fill="#FFFFFF" opacity="0.6">
+        <animate attributeName="opacity" values="0;0.6;0" dur="1.5s" repeatCount="indefinite" />
+      </circle>
+    </svg>
+
+    <!-- 案2 -->
+    <svg width="30%" viewBox="0 0 250 250" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="auroraGrad" cx="50%" cy="50%" r="60%">
+          <stop offset="0%" stop-color="#FF00FF" stop-opacity="0.7" />
+          <stop offset="80%" stop-color="#FF00FF" stop-opacity="0.2" />
+          <stop offset="100%" stop-color="#FF00FF" stop-opacity="0" />
+        </radialGradient>
+        <filter id="blur">
+          <feGaussianBlur stdDeviation="8" />
+        </filter>
+      </defs>
+      <ellipse cx="125" cy="125" rx="90" ry="85" fill="url(#auroraGrad)" filter="url(#blur)">
+        <animate attributeName="rx" values="90;95;90" dur="5s" repeatCount="indefinite" />
+        <animate attributeName="ry" values="85;90;85" dur="4s" repeatCount="indefinite" />
+        <animateTransform attributeName="transform" type="translate" values="0,-3;0,3;0,-3" dur="4s"
+          repeatCount="indefinite" />
+      </ellipse>
+    </svg>
+    <!-- 案3 -->
+    <a href="index.html" style="height: 250px; width: 30%;">
+
+      <svg width="100%" height="250" viewBox="0 0 250 250" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="inkGrad" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#00FFFF" stop-opacity="0.8" />
+            <stop offset="60%" stop-color="#00FFFF" stop-opacity="0.3" />
+            <stop offset="100%" stop-color="#00FFFF" stop-opacity="0" />
+          </radialGradient>
+          <filter id="goo">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="10" />
+          </filter>
+        </defs>
+        <path fill="url(#inkGrad)" filter="url(#goo)" d="
+    M125,40
+    Q160,50 185,75
+    Q210,100 205,135
+    Q200,175 165,195
+    Q130,215 95,190
+    Q60,165 50,130
+    Q40,95 65,70
+    Q90,45 125,40Z">
+          <animateTransform attributeName="transform" type="translate" values="0,-4;0,4;0,-4" dur="5s"
+            repeatCount="indefinite" />
+          <animate attributeName="opacity" values="0.7;0.9;0.7" dur="4s" repeatCount="indefinite" />
+        </path>
+      </svg>
+    </a>
+
+
+  </div>
+
+
+  <!-- <p><a href="index.html">一覧ページに戻る</a></p> -->
+
+  <script>
+    // ダブルタップによるズームを防止する
+    // { passive: false } を指定して、preventDefault() が呼び出されることをブラウザに伝える
+    document.addEventListener('dblclick', function (event) {
+      event.preventDefault();
+    }, { passive: false });
+  </script>
 
 </body>
 
