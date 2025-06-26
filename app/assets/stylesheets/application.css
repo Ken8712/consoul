@@ -14,15 +14,6 @@
  *= require_self
  */
 
-.bg-main-iphone {
-  background-image: url("<%= asset_path('bg-main.png') %>");
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  min-height: 100vh;
-  min-width: 100vw;
-}
-
 @media screen and (max-width: 1320px) {
   .bg-main-iphone {
     background-size: contain;
