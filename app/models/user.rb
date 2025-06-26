@@ -14,6 +14,10 @@ class User < ApplicationRecord
   has_many :rooms_as_user1, class_name: "Room", foreign_key: :user1_id, dependent: :destroy
   has_many :rooms_as_user2, class_name: "Room", foreign_key: :user2_id, dependent: :destroy
 
+  # Light関連
+  has_many :lights, dependent: :destroy
+  has_many :echoes, dependent: :destroy
+
   # =====================================
   # バリデーション
   # =====================================
@@ -79,6 +83,23 @@ class User < ApplicationRecord
     )
   rescue ActiveRecord::RecordInvalid
     nil
+  end
+
+  # Light関連メソッド
+  def increment_light(light_definition_key)
+    light_def = LightDefinition.find_by(key: light_definition_key)
+    return unless light_def
+    
+    light = lights.find_or_create_by(light_definition: light_def)
+    light.increment!(:amount)
+  end
+
+  # 最も多いLightの色を取得（オーロラ表示用）
+  def dominant_light_color
+    light = lights.joins(:light_definition)
+                  .order(amount: :desc)
+                  .first
+    light&.light_definition&.hex_rgba || "#C0FFFF"
   end
 
   private

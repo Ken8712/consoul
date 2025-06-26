@@ -153,6 +153,44 @@ RSpec.describe User, type: :model do
     end
   end
 
+  # Light関連のテスト
+  describe "Light関連機能" do
+    let(:user) { User.create!(email: 'light_test@test.com', name: 'テストユーザー', password: 'password') }
+    let!(:joy_def) { LightDefinition.create!(key: 'joy', name: '喜び', r: 255, g: 223, b: 80, a: 230) }
+    let!(:sadness_def) { LightDefinition.create!(key: 'sadness', name: '悲しみ', r: 0, g: 0, b: 255, a: 153) }
+
+    describe "#increment_light" do
+      it "存在するLightDefinitionの場合、Lightを作成して増加させること" do
+        expect { user.increment_light('joy') }.to change { user.lights.count }.by(1)
+        light = user.lights.find_by(light_definition: joy_def)
+        expect(light.amount).to eq(1)
+      end
+
+      it "既存のLightの場合、amountを増加させること" do
+        user.lights.create!(light_definition: joy_def, amount: 3)
+        expect { user.increment_light('joy') }.not_to change { user.lights.count }
+        light = user.lights.find_by(light_definition: joy_def)
+        expect(light.amount).to eq(4)
+      end
+
+      it "存在しないkeyの場合、何もしないこと" do
+        expect { user.increment_light('nonexistent') }.not_to change { user.lights.count }
+      end
+    end
+
+    describe "#dominant_light_color" do
+      it "最も多いLightの色を返すこと" do
+        user.lights.create!(light_definition: joy_def, amount: 5)
+        user.lights.create!(light_definition: sadness_def, amount: 3)
+        expect(user.dominant_light_color).to eq(joy_def.hex_rgba)
+      end
+
+      it "Lightが存在しない場合、デフォルト色を返すこと" do
+        expect(user.dominant_light_color).to eq("#C0FFFF")
+      end
+    end
+  end
+
   describe 'ペアシステムの整合性' do
     let(:user1) { User.create!(email: 'user1@example.com', name: 'User1', password: 'password123') }
     let(:user2) { User.create!(email: 'user2@example.com', name: 'User2', password: 'password123') }

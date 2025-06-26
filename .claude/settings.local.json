@@ -11,7 +11,9 @@
       "Bash(ruby --version)",
       "Bash(bundle --version)",
       "Bash(gem --version)",
-      "Bash(bundle check:*)"
+      "Bash(bundle check:*)",
+      "Bash(rails generate:*)",
+      "Bash(bundle exec rspec:*)"
     ],
     "deny": []
   }
