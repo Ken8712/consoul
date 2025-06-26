@@ -12,6 +12,8 @@ export default class extends Controller {
   }
 
   connect() {
+    this.isInteractionDisabled = false
+    this.hasShownAccumulatedLights = false
     this.initFloatingLightsManager()
     this.setupTouchEvents()
     this.updateLightColor()
@@ -30,6 +32,7 @@ export default class extends Controller {
     this.floatingLightsManager = {
       container: null,
       lights: [],
+      accumulatedLights: [],
 
       init() {
         this.container = document.getElementById('floating-lights-container')
@@ -44,38 +47,41 @@ export default class extends Controller {
         if (this.container) {
           this.container.innerHTML = ''
           this.lights = []
+          this.accumulatedLights = []
         }
       },
 
-      // 新しいlightを背景に追加（遠方表現）
-      addLight(color, amount = 1) {
-        if (!this.container) return
+      // 放物線の軌道を計算
+      calculateProjectilePath(startX, startY, targetX, targetY) {
+        const midX = (startX + targetX) / 2
+        const midY = Math.min(startY, targetY) - 150 // 画面中央上部を頂点とする
 
-        for (let i = 0; i < amount; i++) {
-          const light = document.createElement('div')
-          light.className = 'floating-light distant'
-          light.style.background = color
-
-          // 遠方のランダムな位置に配置（画面の端寄り）
-          const margin = 100 // 画面端からのマージン
-          const x = margin + Math.random() * (window.innerWidth - 2 * margin)
-          const y = margin + Math.random() * (window.innerHeight - 2 * margin)
-          light.style.setProperty('--start-x', x + 'px')
-          light.style.setProperty('--start-y', y + 'px')
-          light.style.left = x + 'px'
-          light.style.top = y + 'px'
-
-          this.container.appendChild(light)
-          this.lights.push(light)
+        return {
+          quarter: {
+            x: startX + (midX - startX) * 0.5,
+            y: startY + (midY - startY) * 0.5
+          },
+          half: {
+            x: midX,
+            y: midY
+          },
+          threeQuarter: {
+            x: midX + (targetX - midX) * 0.5,
+            y: midY + (targetY - midY) * 0.5
+          },
+          final: {
+            x: targetX,
+            y: targetY
+          }
         }
       },
 
-      // lightを画面奥に飛ばす
-      flyLightToBackground(color) {
+      // 新しいライトを放物線軌道で投射
+      projectLightToBackground(color, callback) {
         if (!this.container) return
 
         const light = document.createElement('div')
-        light.className = 'floating-light flying'
+        light.className = 'floating-light projecting'
         light.style.background = color
 
         // 現在のlightの位置を取得
@@ -83,33 +89,87 @@ export default class extends Controller {
         if (!currentLight) return
 
         const rect = currentLight.getBoundingClientRect()
-        const centerX = rect.left + rect.width / 2
-        const centerY = rect.top + rect.height / 2
+        const startX = rect.left + rect.width / 2
+        const startY = rect.top + rect.height / 2
 
-        // 飛ぶ先の位置をランダムに決定（遠方）
+        // 着地点をランダムに決定（画面上部中央寄り）
         const margin = 100
-        const flyX = margin + Math.random() * (window.innerWidth - 2 * margin)
-        const flyY = margin + Math.random() * (window.innerHeight - 2 * margin)
+        const targetX = margin + Math.random() * (window.innerWidth - 2 * margin)
+        const targetY = margin + Math.random() * (window.innerHeight * 0.4) // 画面上部40%の範囲
 
-        light.style.setProperty('--fly-x', (flyX - centerX) + 'px')
-        light.style.setProperty('--fly-y', (flyY - centerY) + 'px')
-        light.style.left = centerX + 'px'
-        light.style.top = centerY + 'px'
+        // 放物線軌道を計算
+        const path = this.calculateProjectilePath(startX, startY, targetX, targetY)
+
+        // CSS変数として軌道を設定
+        light.style.setProperty('--flight-x-quarter', (path.quarter.x - startX) + 'px')
+        light.style.setProperty('--flight-y-quarter', (path.quarter.y - startY) + 'px')
+        light.style.setProperty('--flight-x-half', (path.half.x - startX) + 'px')
+        light.style.setProperty('--flight-y-half', (path.half.y - startY) + 'px')
+        light.style.setProperty('--flight-x-three-quarter', (path.threeQuarter.x - startX) + 'px')
+        light.style.setProperty('--flight-y-three-quarter', (path.threeQuarter.y - startY) + 'px')
+        light.style.setProperty('--flight-x-final', (targetX - startX) + 'px')
+        light.style.setProperty('--flight-y-final', (targetY - startY) + 'px')
+
+        light.style.left = startX + 'px'
+        light.style.top = startY + 'px'
 
         this.container.appendChild(light)
 
-        // アニメーション終了後に背景漂うlightに変更（遠方表現）
+        // アニメーション終了後に背景の一部として固定
         setTimeout(() => {
           if (light.parentNode) {
-            light.classList.remove('flying')
+            light.classList.remove('projecting')
             light.classList.add('distant')
-            light.style.setProperty('--start-x', flyX + 'px')
-            light.style.setProperty('--start-y', flyY + 'px')
-            light.style.left = flyX + 'px'
-            light.style.top = flyY + 'px'
+            light.style.setProperty('--start-x', targetX + 'px')
+            light.style.setProperty('--start-y', targetY + 'px')
+            light.style.left = targetX + 'px'
+            light.style.top = targetY + 'px'
             this.lights.push(light)
+            
+            // コールバック実行
+            if (callback) callback()
           }
-        }, 1500)
+        }, 2000)
+      },
+
+      // 蓄積されたライトを同心円状にフェードイン表示
+      showAccumulatedLights(userLights, isRippleEffect = false) {
+        if (!this.container || !userLights) return
+
+        // 中心点（画面中央）
+        const centerX = window.innerWidth / 2
+        const centerY = window.innerHeight / 2
+
+        userLights.forEach((userLight, index) => {
+          if (userLight.amount > 0) {
+            const color = `rgba(${userLight.light_definition.r}, ${userLight.light_definition.g}, ${userLight.light_definition.b}, ${userLight.light_definition.a / 255})`
+            
+            for (let i = 0; i < userLight.amount; i++) {
+              const light = document.createElement('div')
+              light.className = `accumulated-light ${isRippleEffect ? 'ripple-light' : ''}`
+              light.style.background = color
+
+              // 同心円状に配置
+              const radius = 100 + (i * 50) // 中心から100px開始、50pxずつ離れる
+              const angle = (index * (360 / userLights.length)) + (i * 15) // 種類ごとに角度オフセット
+              const radian = (angle * Math.PI) / 180
+
+              const x = centerX + Math.cos(radian) * radius
+              const y = centerY + Math.sin(radian) * radius
+
+              light.style.left = x + 'px'
+              light.style.top = y + 'px'
+              light.style.width = '40px'
+              light.style.height = '40px'
+
+              // 順次フェードイン（波紋効果）
+              light.style.animationDelay = `${(i + index) * 0.1}s`
+
+              this.container.appendChild(light)
+              this.accumulatedLights.push(light)
+            }
+          }
+        })
       },
 
       // 既存のlightを背景に配置（遠方表現）
@@ -122,6 +182,29 @@ export default class extends Controller {
             this.addLight(color, userLight.amount)
           }
         })
+      },
+
+      // 新しいlightを背景に追加（遠方表現）
+      addLight(color, amount = 1) {
+        if (!this.container) return
+
+        for (let i = 0; i < amount; i++) {
+          const light = document.createElement('div')
+          light.className = 'floating-light distant'
+          light.style.background = color
+
+          // 遠方のランダムな位置に配置（画面の端寄り）
+          const margin = 100
+          const x = margin + Math.random() * (window.innerWidth - 2 * margin)
+          const y = margin + Math.random() * (window.innerHeight - 2 * margin)
+          light.style.setProperty('--start-x', x + 'px')
+          light.style.setProperty('--start-y', y + 'px')
+          light.style.left = x + 'px'
+          light.style.top = y + 'px'
+
+          this.container.appendChild(light)
+          this.lights.push(light)
+        }
       }
     }
 
@@ -170,6 +253,11 @@ export default class extends Controller {
   }
 
   handleFlick(direction) {
+    // インタラクション無効化中は何もしない
+    if (this.isInteractionDisabled) {
+      return
+    }
+
     if (direction === 'left') {
       this.nextLight()
     } else {
@@ -178,6 +266,11 @@ export default class extends Controller {
   }
 
   handleSwipe(direction) {
+    // インタラクション無効化中は何もしない
+    if (this.isInteractionDisabled) {
+      return
+    }
+
     if (direction === 'up') {
       this.executeAction()
     }
@@ -196,12 +289,33 @@ export default class extends Controller {
   }
 
   executeAction() {
+    // インタラクション無効化中は何もしない
+    if (this.isInteractionDisabled) {
+      return
+    }
+
     const currentLight = this.lightDefinitionsValue[this.currentIndexValue]
     const color = `rgba(${currentLight.r}, ${currentLight.g}, ${currentLight.b}, ${currentLight.a / 255})`
 
-    // lightを画面奥に飛ばす
+    // インタラクションを無効化
+    this.disableInteraction()
+
+    // 放物線軌道でライトを投射
     if (this.floatingLightsManager) {
-      this.floatingLightsManager.flyLightToBackground(color)
+      this.floatingLightsManager.projectLightToBackground(color, () => {
+        // 投射完了後の処理
+        if (!this.hasShownAccumulatedLights) {
+          // 初回は波紋効果で蓄積ライトを表示
+          this.floatingLightsManager.showAccumulatedLights(this.userLightsValue, true)
+          this.hasShownAccumulatedLights = true
+        }
+
+        // 新しいライトを画面下に配置
+        this.spawnNewLight()
+        
+        // インタラクションを再有効化
+        this.enableInteraction()
+      })
     }
 
     // サーバーにLight増加リクエストを送信
@@ -218,12 +332,57 @@ export default class extends Controller {
       .then(response => response.json())
       .then(data => {
         if (data.success) {
-          this.triggerLightAnimation()
+          // userLightsValueを更新
+          this.updateUserLightsValue(currentLight.key)
         }
       })
       .catch(error => {
         console.error('Error:', error)
+        // エラー時もインタラクションを再有効化
+        this.enableInteraction()
       })
+  }
+
+  // インタラクション無効化
+  disableInteraction() {
+    this.isInteractionDisabled = true
+    this.element.classList.add('interaction-disabled')
+  }
+
+  // インタラクション有効化
+  enableInteraction() {
+    this.isInteractionDisabled = false
+    this.element.classList.remove('interaction-disabled')
+  }
+
+  // 新しいライトを画面下に配置
+  spawnNewLight() {
+    // 現在のライトを一時的に隠して新しいライトを表示
+    this.lightTarget.style.opacity = '0'
+    
+    setTimeout(() => {
+      this.lightTarget.style.opacity = '1'
+      this.triggerLightAnimation()
+    }, 500)
+  }
+
+  // userLightsValueを更新
+  updateUserLightsValue(lightKey) {
+    const existingLight = this.userLightsValue.find(light => 
+      light.light_definition.key === lightKey
+    )
+    
+    if (existingLight) {
+      existingLight.amount += 1
+    } else {
+      const lightDef = this.lightDefinitionsValue.find(def => def.key === lightKey)
+      if (lightDef) {
+        this.userLightsValue.push({
+          amount: 1,
+          light_definition: lightDef
+        })
+      }
+    }
   }
 
   updateLightColor() {
