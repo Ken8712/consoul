@@ -51,86 +51,6 @@ export default class extends Controller {
         }
       },
 
-      // 放物線の軌道を計算
-      calculateProjectilePath(startX, startY, targetX, targetY) {
-        const midX = (startX + targetX) / 2
-        const midY = Math.min(startY, targetY) - 150 // 画面中央上部を頂点とする
-
-        return {
-          quarter: {
-            x: startX + (midX - startX) * 0.5,
-            y: startY + (midY - startY) * 0.5
-          },
-          half: {
-            x: midX,
-            y: midY
-          },
-          threeQuarter: {
-            x: midX + (targetX - midX) * 0.5,
-            y: midY + (targetY - midY) * 0.5
-          },
-          final: {
-            x: targetX,
-            y: targetY
-          }
-        }
-      },
-
-      // 新しいライトを放物線軌道で投射
-      projectLightToBackground(color, callback) {
-        if (!this.container) return
-
-        const light = document.createElement('div')
-        light.className = 'floating-light projecting'
-        light.style.background = color
-
-        // 現在のlightの位置を取得
-        const currentLight = document.getElementById('light')
-        if (!currentLight) return
-
-        const rect = currentLight.getBoundingClientRect()
-        const startX = rect.left + rect.width / 2
-        const startY = rect.top + rect.height / 2
-
-        // 着地点をランダムに決定（画面上部中央寄り）
-        const margin = 100
-        const targetX = margin + Math.random() * (window.innerWidth - 2 * margin)
-        const targetY = margin + Math.random() * (window.innerHeight * 0.4) // 画面上部40%の範囲
-
-        // 放物線軌道を計算
-        const path = this.calculateProjectilePath(startX, startY, targetX, targetY)
-
-        // CSS変数として軌道を設定
-        light.style.setProperty('--flight-x-quarter', (path.quarter.x - startX) + 'px')
-        light.style.setProperty('--flight-y-quarter', (path.quarter.y - startY) + 'px')
-        light.style.setProperty('--flight-x-half', (path.half.x - startX) + 'px')
-        light.style.setProperty('--flight-y-half', (path.half.y - startY) + 'px')
-        light.style.setProperty('--flight-x-three-quarter', (path.threeQuarter.x - startX) + 'px')
-        light.style.setProperty('--flight-y-three-quarter', (path.threeQuarter.y - startY) + 'px')
-        light.style.setProperty('--flight-x-final', (targetX - startX) + 'px')
-        light.style.setProperty('--flight-y-final', (targetY - startY) + 'px')
-
-        light.style.left = startX + 'px'
-        light.style.top = startY + 'px'
-
-        this.container.appendChild(light)
-
-        // アニメーション終了後に背景の一部として固定
-        setTimeout(() => {
-          if (light.parentNode) {
-            light.classList.remove('projecting')
-            light.classList.add('distant')
-            light.style.setProperty('--start-x', targetX + 'px')
-            light.style.setProperty('--start-y', targetY + 'px')
-            light.style.left = targetX + 'px'
-            light.style.top = targetY + 'px'
-            this.lights.push(light)
-            
-            // コールバック実行
-            if (callback) callback()
-          }
-        }, 2000)
-      },
 
       // 蓄積されたライトを同心円状にフェードイン表示
       showAccumulatedLights(userLights, isRippleEffect = false) {
@@ -300,23 +220,8 @@ export default class extends Controller {
     // インタラクションを無効化
     this.disableInteraction()
 
-    // 放物線軌道でライトを投射
-    if (this.floatingLightsManager) {
-      this.floatingLightsManager.projectLightToBackground(color, () => {
-        // 投射完了後の処理
-        if (!this.hasShownAccumulatedLights) {
-          // 初回は波紋効果で蓄積ライトを表示
-          this.floatingLightsManager.showAccumulatedLights(this.userLightsValue, true)
-          this.hasShownAccumulatedLights = true
-        }
-
-        // 新しいライトを画面下に配置
-        this.spawnNewLight()
-        
-        // インタラクションを再有効化
-        this.enableInteraction()
-      })
-    }
+    // SVGライトオブジェクト自体を投射
+    this.projectSvgLight(color)
 
     // サーバーにLight増加リクエストを送信
     fetch('/api/lights/increment', {
@@ -343,6 +248,81 @@ export default class extends Controller {
       })
   }
 
+  // SVGライトオブジェクト自体を投射
+  projectSvgLight(color) {
+    // 現在の位置を記録
+    const rect = this.element.getBoundingClientRect()
+    const startX = rect.left
+    const startY = rect.top
+
+    // 固定の終点（画面中央上部）
+    const endX = window.innerWidth / 2 - 100 // SVGの幅の半分を引く
+    const endY = 50 // 画面上部から50px
+
+    // アニメーション開始前の位置を設定
+    this.element.style.left = startX + 'px'
+    this.element.style.top = startY + 'px'
+    this.element.style.bottom = 'auto'
+    this.element.style.transform = 'translateX(0)'
+
+    // アニメーションクラスを追加
+    this.element.classList.add('light-container-projecting')
+
+    // アニメーション終了時の処理
+    const animationEndHandler = () => {
+      this.element.removeEventListener('animationend', animationEndHandler)
+      
+      // 最終位置に固定
+      this.element.classList.remove('light-container-projecting')
+      this.element.style.left = endX + 'px'
+      this.element.style.top = endY + 'px'
+      this.element.style.transform = 'translate(0, 0) scale(0.15)'
+      this.element.style.opacity = '0.5'
+
+      // 投射完了後の処理
+      setTimeout(() => {
+        // 背景にライトを追加
+        if (this.floatingLightsManager) {
+          this.floatingLightsManager.addLight(color, 1)
+        }
+
+        // 蓄積ライトを表示
+        if (!this.hasShownAccumulatedLights) {
+          this.floatingLightsManager.showAccumulatedLights(this.userLightsValue, true)
+          this.hasShownAccumulatedLights = true
+        }
+
+        // SVGライトを元の位置に戻す
+        this.resetSvgLight()
+        
+        // インタラクションを再有効化
+        this.enableInteraction()
+      }, 300)
+    }
+
+    this.element.addEventListener('animationend', animationEndHandler)
+  }
+
+  // SVGライトを元の位置に戻す
+  resetSvgLight() {
+    // アニメーションクラスを削除
+    this.element.classList.remove('light-container-projecting')
+    
+    // 元の位置に戻す
+    this.element.style.left = '50%'
+    this.element.style.bottom = '5px'
+    this.element.style.top = 'auto'
+    this.element.style.transform = 'translateX(-50%)'
+    this.element.style.opacity = '1'
+
+    // フェードインアニメーション
+    this.lightTarget.style.opacity = '0'
+    setTimeout(() => {
+      this.lightTarget.style.opacity = '1'
+      this.lightTarget.style.transition = 'opacity 0.5s ease-in'
+    }, 100)
+  }
+
   // インタラクション無効化
   disableInteraction() {
     this.isInteractionDisabled = true
@@ -355,16 +335,6 @@ export default class extends Controller {
     this.element.classList.remove('interaction-disabled')
   }
 
-  // 新しいライトを画面下に配置
-  spawnNewLight() {
-    // 現在のライトを一時的に隠して新しいライトを表示
-    this.lightTarget.style.opacity = '0'
-    
-    setTimeout(() => {
-      this.lightTarget.style.opacity = '1'
-      this.triggerLightAnimation()
-    }, 500)
-  }
 
   // userLightsValueを更新
   updateUserLightsValue(lightKey) {

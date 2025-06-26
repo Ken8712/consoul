@@ -13,28 +13,59 @@
   100% { transform: scale(1); }
 }
 
-/* 放物線アニメーション - 上投射、縮小、背景固定 */
-@keyframes projectile-flight {
+/* 物理ベース放物線アニメーション - 重力加速度を考慮 */
+@keyframes projectile-physics {
   0% {
-    transform: translate(0, 0) scale(1);
+    transform: translate(0px, 0px) scale(1);
     opacity: 1;
   }
-  25% {
-    transform: translate(var(--flight-x-quarter), var(--flight-y-quarter)) scale(0.8);
+  10% {
+    transform: translate(0px, -60px) scale(0.95);
+    opacity: 0.95;
+  }
+  20% {
+    transform: translate(0px, -100px) scale(0.85);
     opacity: 0.9;
   }
+  30% {
+    transform: translate(0px, -120px) scale(0.75);
+    opacity: 0.85;
+  }
+  40% {
+    transform: translate(0px, -125px) scale(0.65);
+    opacity: 0.8;
+  }
   50% {
-    transform: translate(var(--flight-x-half), var(--flight-y-half)) scale(0.5);
+    transform: translate(0px, -115px) scale(0.55);
+    opacity: 0.75;
+  }
+  60% {
+    transform: translate(0px, -95px) scale(0.45);
     opacity: 0.7;
   }
-  75% {
-    transform: translate(var(--flight-x-three-quarter), var(--flight-y-three-quarter)) scale(0.3);
-    opacity: 0.5;
+  70% {
+    transform: translate(0px, -65px) scale(0.35);
+    opacity: 0.65;
+  }
+  80% {
+    transform: translate(0px, -30px) scale(0.25);
+    opacity: 0.6;
+  }
+  90% {
+    transform: translate(0px, -5px) scale(0.18);
+    opacity: 0.55;
   }
   100% {
-    transform: translate(var(--flight-x-final), var(--flight-y-final)) scale(0.15);
-    opacity: 0.4;
+    transform: translate(0px, 0px) scale(0.15);
+    opacity: 0.5;
   }
+}
+
+/* SVGコンテナの物理ベース投射アニメーション */
+.light-container-projecting {
+  animation: projectile-physics 2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  position: fixed !important;
+  z-index: 20;
 }
 
 /* 背景漂いアニメーション */
