@@ -4,6 +4,11 @@ Rails.application.routes.draw do
   # ダッシュボードをルートに設定
   root "dashboards#index"
 
+  # APIルート
+  namespace :api do
+    post 'lights/increment'
+  end
+
   # ルーム関連
   resources :rooms do
     member do

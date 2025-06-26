@@ -26,7 +26,14 @@
     <% end %>
   </div>
 
-
+  <!-- 操作説明 -->
+  <div class="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+    <p class="text-blue-800 text-sm">
+      <span class="font-semibold">感情ライトの操作:</span><br>
+      • 左右フリック: 感情の色を切り替え<br>
+      • 上スワイプ: 選択した感情をアウトプット
+    </p>
+  </div>
 
   
   <div class="space-y-4">
@@ -35,28 +42,48 @@
     <!-- <%= link_to "prototypes", "/prototypes/index.html" %> -->
   </div>
   
-  <div class="fixed bottom-5 left-1/2 transform -translate-x-1/2">
+  <!-- 背景に漂うlightのコンテナ -->
+  <div id="floating-lights-container" class="fixed inset-0 pointer-events-none z-10"></div>
+  
+  <div class="fixed bottom-5 left-1/2 transform -translate-x-1/2"
+       data-controller="light-svg"
+       data-light-svg-light-definitions-value="<%= @light_definitions.to_json(only: [:key, :name, :r, :g, :b, :a]) %>"
+       data-light-svg-user-lights-value="<%= current_user.lights.includes(:light_definition).to_json(only: [:amount], include: { light_definition: { only: [:key, :name, :r, :g, :b, :a] } }) %>">
 
   <svg
-    id="emotionSvg"
+    data-light-svg-target="svg"
     width="200"
     height="200"
     viewBox="0 0 300 300"
     xmlns="http://www.w3.org/2000/svg"
+    style="touch-action: none;"
   >
     <defs>
-      <radialGradient id="auroraGrad" cx="50%" cy="50%" r="55%">
+      <radialGradient id="lightGrad" cx="50%" cy="50%" r="55%">
         <stop offset="0%" stop-color="#C0FFFF" stop-opacity="1.0" />
-        <stop offset="55%" stop-color="#C0FFFF" stop-opacity="0.6 " />
+        <stop offset="55%" stop-color="#C0FFFF" stop-opacity="0.6" />
         <stop offset="100%" stop-color="#C0FFFF" stop-opacity="0" />
       </radialGradient>
       <filter id="blur">
         <feGaussianBlur stdDeviation="8" />
       </filter>
+      <filter id="glow">
+        <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+        <feMerge> 
+          <feMergeNode in="coloredBlur"/>
+          <feMergeNode in="SourceGraphic"/>
+        </feMerge>
+      </filter>
     </defs>
-    <ellipse id="aurora" cx="150" cy="150" rx="100" ry="95" fill="url(#auroraGrad)" filter="url(#blur)" />
+    <ellipse data-light-svg-target="light" id="light" cx="150" cy="150" rx="100" ry="95" fill="url(#lightGrad)" filter="url(#blur)" />
   </svg>
   </div>
+
+  <!-- トースト通知 -->
+  <div id="toast" class="fixed top-4 right-4 bg-transparent text-white px-6 py-3 rounded-lg shadow-lg transform translate-x-full transition-transform duration-300 z-50">
+    <span id="toast-message"></span>
+  </div>
+
 <style>
 @keyframes float {
   0%   { transform: translateY(-10px); }
@@ -64,11 +91,96 @@
   100% { transform: translateY(-10px); }
 }
 
-#aurora {
+@keyframes pulse {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+@keyframes fly-to-background {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translate(var(--fly-x), var(--fly-y)) scale(0.3);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate(var(--fly-x), var(--fly-y)) scale(0.15);
+    opacity: 0.4;
+  }
+}
+
+@keyframes background-float {
+  0% {
+    transform: translate(var(--start-x), var(--start-y)) translateY(-3px);
+  }
+  50% {
+    transform: translate(var(--start-x), var(--start-y)) translateY(3px);
+  }
+  100% {
+    transform: translate(var(--start-x), var(--start-y)) translateY(-3px);
+  }
+}
+
+#light {
   animation: float 0.8s ease-in-out infinite;
+}
+
+/* タッチ操作のためのスタイル */
+[data-controller="light-svg"] {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* 背景に漂うlightのスタイル */
+.floating-light {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(4px);
+  opacity: 0.6;
+  animation: background-float 6s ease-in-out infinite;
+  z-index: 10; /* 背景より手前、その他すべての要素より奥 */
+}
+
+/* 遠方表現のスタイル */
+.floating-light.distant {
+  width: 30px;
+  height: 30px;
+  filter: blur(6px) brightness(0.7);
+  opacity: 0.3;
+  animation: background-float 8s ease-in-out infinite;
+}
+
+.floating-light.flying {
+  animation: fly-to-background 1.5s ease-out forwards;
+}
+
+/* トースト通知のスタイル */
+#toast.show {
+  transform: translateX(0);
 }
 </style>
 
+<script>
+// トースト通知機能
+window.showToast = function(message) {
+  const toast = document.getElementById('toast');
+  const toastMessage = document.getElementById('toast-message');
+  
+  toastMessage.textContent = message;
+  toast.classList.add('show');
+  
+  setTimeout(() => {
+    toast.classList.remove('show');
+  }, 3000);
+};
+</script>
 
   
 </div>
