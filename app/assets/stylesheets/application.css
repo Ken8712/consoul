@@ -15,7 +15,7 @@
  */
 
 .bg-main-iphone {
-  background-image: url('/assets/bg-main.png');
+  background-image: url("<%= asset_path('bg-main.png') %>");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
