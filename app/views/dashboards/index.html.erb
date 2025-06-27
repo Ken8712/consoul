@@ -85,7 +85,6 @@
   </div>
 
 <!-- CSSは外部ファイル(app/assets/stylesheets/lights.css)に移動 -->
-
 <script>
 // トースト通知機能
 window.showToast = function(message) {
@@ -99,7 +98,44 @@ window.showToast = function(message) {
     toast.classList.remove('show');
   }, 3000);
 };
+
+
+
+/**
+ * 画面上にデバッグ用ドットを置く
+ * @param {number} x   ビューポート左端からの X 座標(px)
+ * @param {number} y   ビューポート上端からの Y 座標(px)
+ * @param {Object} opt 追加オプション
+ *   - color:  色 (既定 'red')
+ *   - size:   直径(px) (既定 8)
+ *   - label:  テキストラベル (既定なし)
+ *   - ttl:    自動削除までの ms (既定 0 = 手動削除)
+ * @returns {HTMLElement} 生成した DOM 要素
+ */
+window.debugPoint = function (x, y, opt = {}) {
+  const { color = 'red', size = 8, label = '', ttl = 0 } = opt;
+  const el = document.createElement('div');
+  Object.assign(el.style, {
+    position: 'fixed',
+    left: `${x - size / 2}px`,
+    top:  `${y - size / 2}px`,
+    width: `${size}px`,
+    height:`${size}px`,
+    background: color,
+    borderRadius: '50%',
+    zIndex: 10_000,
+    pointerEvents: 'none',
+  });
+  if (label) {
+    el.title = label;                   // ツールチップ
+    el.style.boxShadow = `0 0 0 1px ${color}`; // 視認性アップ
+  }
+  document.body.appendChild(el);
+  if (ttl > 0) setTimeout(() => el.remove(), ttl);
+  return el;
+};
+
+
 </script>
 
-  
 </div>

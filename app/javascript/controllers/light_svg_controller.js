@@ -59,11 +59,9 @@ export default class extends Controller {
         // 中心点（画面中央）
         const centerX = window.innerWidth / 2
         const centerY = window.innerHeight / 2
-
         userLights.forEach((userLight, index) => {
           if (userLight.amount > 0) {
             const color = `rgba(${userLight.light_definition.r}, ${userLight.light_definition.g}, ${userLight.light_definition.b}, ${userLight.light_definition.a / 255})`
-            
             for (let i = 0; i < userLight.amount; i++) {
               const light = document.createElement('div')
               light.className = `accumulated-light ${isRippleEffect ? 'ripple-light' : ''}`
@@ -252,13 +250,13 @@ export default class extends Controller {
   projectSvgLight(color) {
     // 現在の位置を記録
     const rect = this.element.getBoundingClientRect()
+    console.log(rect)
     const startX = rect.left
     const startY = rect.top
 
     // 固定の終点（画面中央上部）
     const endX = window.innerWidth / 2 - 100 // SVGの幅の半分を引く
     const endY = 50 // 画面上部から50px
-
     // アニメーション開始前の位置を設定
     this.element.style.left = startX + 'px'
     this.element.style.top = startY + 'px'
@@ -271,7 +269,7 @@ export default class extends Controller {
     // アニメーション終了時の処理
     const animationEndHandler = () => {
       this.element.removeEventListener('animationend', animationEndHandler)
-      
+
       // 最終位置に固定
       this.element.classList.remove('light-container-projecting')
       this.element.style.left = endX + 'px'
@@ -294,7 +292,7 @@ export default class extends Controller {
 
         // SVGライトを元の位置に戻す
         this.resetSvgLight()
-        
+
         // インタラクションを再有効化
         this.enableInteraction()
       }, 300)
@@ -307,7 +305,7 @@ export default class extends Controller {
   resetSvgLight() {
     // アニメーションクラスを削除
     this.element.classList.remove('light-container-projecting')
-    
+
     // 元の位置に戻す
     this.element.style.left = '50%'
     this.element.style.bottom = '5px'
@@ -338,10 +336,10 @@ export default class extends Controller {
 
   // userLightsValueを更新
   updateUserLightsValue(lightKey) {
-    const existingLight = this.userLightsValue.find(light => 
+    const existingLight = this.userLightsValue.find(light =>
       light.light_definition.key === lightKey
     )
-    
+
     if (existingLight) {
       existingLight.amount += 1
     } else {
